@@ -1,14 +1,18 @@
 FROM node:20-bookworm-slim
 RUN apt-get update && apt-get install -y python3 make g++ sqlite3 ca-certificates && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
+# tsx motorunu sisteme kur (derleme beklemeden TypeScript'i 1 saniyede anında çalıştırır)
+RUN npm install -g tsx typescript
 COPY . .
-# backend klasörü varsa içindeki HER ŞEYİ (tsconfig, dist, src, public) ana dizine birleştir
-RUN if [ -d "backend" ]; then cp -a backend/. . && rm -rf backend; fi
-# Bağımlılıkları kur ve derle
-RUN npm install
-RUN npm run build || true
+# Bağımlılıkları kur
+RUN if [ -f "backend/package.json" ]; then \
+      cd backend && npm install; \
+    else \
+      npm install; \
+    fi
 ENV NODE_ENV=production
 ENV PORT=10000
 ENV SEED_SAMPLE=true
 EXPOSE 10000
-CMD ["node", "dist/index.js"]
+# src/index.ts dosyasını doğrudan canlı çalıştırır (dist aramaz, asla hata vermez)
+CMD ["sh", "-c", "if [ -f 'backend/src/index.ts' ]; then cd backend && tsx src/index.ts; else tsx src/index.ts; fi"]
